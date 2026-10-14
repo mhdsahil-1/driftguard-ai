@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DriftGuard AI | Secure Checkout</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: #f5f7ff;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      padding: 32px;
+      background: #151c30;
+      border: 1px solid #2c3650;
+      border-radius: 20px;
+    }
+    .brand { color: #83a9ff; font-size: 14px; font-weight: bold; }
+    h1 { margin-bottom: 8px; font-size: 28px; }
+    .muted { color: #aeb9d2; line-height: 1.6; }
+    .amount {
+      margin: 24px 0;
+      padding: 20px;
+      border-radius: 12px;
+      background: #0d1426;
+    }
+    .price { font-size: 36px; font-weight: bold; margin-top: 6px; }
+    #paypal-button-container { margin-top: 20px; }
+    #status { margin-top: 18px; font-size: 14px; overflow-wrap: anywhere; }
+    .note { font-size: 12px; margin-top: 22px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">DRIFTGUARD AI</div>
+    <h1>Secure demo checkout</h1>
+    <p class="muted">
+      Experience a PayPal Sandbox checkout with experimental
+      transaction-risk intelligence.
+    </p>
+
+    <section class="amount">
+      <div class="muted">Demo purchase</div>
+      <div class="price">$10.00 USD</div>
+      <div class="muted">Sandbox transaction · No real charge</div>
+    </section>
+
+    <div id="paypal-button-container"></div>
+    <p id="status" role="status">Loading checkout…</p>
+
+    <p class="muted note">
+      Demonstration only. DriftGuard AI risk scores are experimental
+      and are not official PayPal fraud decisions.
+    </p>
+  </main>
+
+  <script>
+    const statusElement = document.getElementById("status");
+
+    function setStatus(message) {
+      statusElement.textContent = message;
+    }
+
+    // PayPal SDK and checkout handlers will be added next.
+    setStatus("Checkout page loaded. PayPal setup is the next step.");
+  </script>
+</body>
+</html>
