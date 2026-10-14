@@ -1,13 +1,28 @@
-from routes.payments import router as payments_router
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from routes.payments import router as payments_router
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+STATIC_DIR = PROJECT_ROOT / "static"
 
 app = FastAPI(
     title="DriftGuard AI",
     description="Experimental payment risk analysis API",
     version="0.2.0",
 )
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(payments_router, prefix="")
+
+
+@app.get("/checkout", include_in_schema=False)
+def checkout_page():
+    return FileResponse(STATIC_DIR / "checkout.html")
+
 
 class Transaction(BaseModel):
     amount: float = Field(gt=0, le=1_000_000)

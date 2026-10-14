@@ -86,6 +86,17 @@ Open the interactive API documentation at:
 
 http://127.0.0.1:8000/docs
 
+Open the Sandbox checkout at:
+
+http://127.0.0.1:8000/checkout
+
+The checkout fetches the public `PAYPAL_CLIENT_ID` from the local backend at
+runtime and then loads the PayPal JavaScript SDK. That client ID is designed to
+be visible in the browser; `PAYPAL_CLIENT_SECRET` remains server-side. If the
+checkout reports that Sandbox is unavailable, set the client ID in `.env` from
+the Sandbox app and restart the backend. Do not put the secret in HTML or
+JavaScript.
+
 ## API Endpoints
 
 | Endpoint | Purpose |
@@ -97,6 +108,12 @@ http://127.0.0.1:8000/docs
 | `POST /paypal/capture-order` | Capture an order after buyer approval |
 
 Payment endpoints must be tested using valid Sandbox workflows. Do not submit real payments or use Live credentials.
+
+The demo fixes the checkout amount at $10.00 server-side and only captures
+orders created by the current backend process. Those protections are suitable
+for a local demo, not a production payment system: production needs
+authenticated user sessions, persistent order records, server-side product
+pricing, CSRF protection, and PayPal webhook verification before fulfilment.
 
 ## AI Evaluation and Limitations
 

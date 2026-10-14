@@ -1,29 +1,56 @@
 
 import os
+from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from dotenv import load_dotenv
 
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SANDBOX_API_BASE = "https://api-m.sandbox.paypal.com"
 
-PAYPAL_API_BASE = os.getenv(
-    "PAYPAL_API_BASE",
-    "https://api-m.sandbox.paypal.com",
-).rstrip("/")
+load_dotenv(PROJECT_ROOT / ".env")
+
+
+def get_paypal_checkout_config() -> dict[str, str]:
+    """Return only browser-safe PayPal Sandbox SDK settings."""
+    _get_sandbox_api_base()
+    return {"client_id": _get_paypal_client_id()}
+
+
+def _get_paypal_client_id() -> str:
+    client_id = os.getenv("PAYPAL_CLIENT_ID", "").strip()
+    if not client_id or client_id.lower().startswith("your_sandbox_client_id"):
+        raise RuntimeError(
+            "PayPal Sandbox client ID is missing. Set PAYPAL_CLIENT_ID in the local .env file."
+        )
+    return client_id
+
+
+def _get_sandbox_api_base() -> str:
+    api_base = os.getenv("PAYPAL_API_BASE", SANDBOX_API_BASE).rstrip("/")
+    if api_base != SANDBOX_API_BASE:
+        raise RuntimeError(
+            "This demo only permits the PayPal Sandbox API. "
+            "Set PAYPAL_API_BASE to https://api-m.sandbox.paypal.com."
+        )
+    return api_base
 
 
 def get_paypal_access_token() -> str:
-    client_id = os.getenv("PAYPAL_CLIENT_ID")
-    client_secret = os.getenv("PAYPAL_CLIENT_SECRET")
+    client_id = _get_paypal_client_id()
+    client_secret = os.getenv("PAYPAL_CLIENT_SECRET", "").strip()
 
-    if not client_id or not client_secret:
+    if not client_secret or client_secret.lower().startswith("your_sandbox_client_secret"):
         raise RuntimeError(
             "PayPal Sandbox credentials are missing. "
             "Check your local .env file."
         )
 
+    api_base = _get_sandbox_api_base()
+
     response = httpx.post(
-        f"{PAYPAL_API_BASE}/v1/oauth2/token",
+        f"{api_base}/v1/oauth2/token",
         auth=(client_id, client_secret),
         data={"grant_type": "client_credentials"},
         headers={"Accept": "application/json"},
@@ -53,9 +80,10 @@ def create_paypal_order(amount: str, currency: str = "USD") -> dict:
         raise ValueError("This demo currently supports USD only.")
 
     token = get_paypal_access_token()
+    api_base = _get_sandbox_api_base()
 
     response = httpx.post(
-        f"{PAYPAL_API_BASE}/v2/checkout/orders",
+        f"{api_base}/v2/checkout/orders",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -83,9 +111,11 @@ def capture_paypal_order(order_id: str) -> dict:
         raise ValueError("A PayPal order ID is required.")
 
     token = get_paypal_access_token()
+    api_base = _get_sandbox_api_base()
+    safe_order_id = quote(order_id.strip(), safe="")
 
     response = httpx.post(
-        f"{PAYPAL_API_BASE}/v2/checkout/orders/{order_id}/capture",
+        f"{api_base}/v2/checkout/orders/{safe_order_id}/capture",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
