@@ -65,16 +65,42 @@ class CheckoutTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("did not create", response.json()["detail"])
 
+    
     @patch("routes.payments.capture_paypal_order")
     def test_capture_requires_completed_paypal_result(self, mock_capture_order):
         with payments._issued_orders_lock:
             payments._issued_order_ids.add("TESTORDER")
-        mock_capture_order.return_value = {"id": "TESTORDER", "status": "COMPLETED"}
 
-        response = self.client.post("/paypal/capture-order", json={"order_id": "TESTORDER"})
+        mock_capture_order.return_value = {
+            "id": "TESTORDER",
+            "status": "COMPLETED",
+            "purchase_units": [
+                {
+                    "payments": {
+                        "captures": [
+                            {
+                                "status": "COMPLETED",
+                                "amount": {
+                                    "currency_code": "USD",
+                                    "value": "10.00",
+                                },
+                            }
+                        ]
+                    }
+                }
+            ],
+        }
+
+        response = self.client.post(
+            "/paypal/capture-order",
+            json={"order_id": "TESTORDER"},
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "COMPLETED")
+        self.assertEqual(response.json()["amount"], "10.00")
+        self.assertEqual(response.json()["currency"], "USD")
+
 
 
 if __name__ == "__main__":

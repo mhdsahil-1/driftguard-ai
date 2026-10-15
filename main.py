@@ -1,11 +1,12 @@
 from pathlib import Path
-
+import pandas as pd
+from ml.drift import detect_feature_drift
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from routes.payments import router as payments_router
-
+from ml.predict import predict_transaction
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 STATIC_DIR = PROJECT_ROOT / "static"
@@ -28,6 +29,13 @@ class Transaction(BaseModel):
     amount: float = Field(gt=0, le=1_000_000)
     transaction_count_last_hour: int = Field(ge=0, le=10000)
     account_age_days: int = Field(ge=0, le=36500)
+
+class DriftRequest(BaseModel):
+    reference: list[dict[str, float]]
+    current: list[dict[str, float]]
+    features: list[str]
+    threshold: float = Field(default=0.2, ge=0)
+
 
 
 @app.get("/")
@@ -79,3 +87,41 @@ def score_transaction(tx: Transaction):
             "or a calibrated probability of fraud."
         ),
     }
+
+class MLTransaction(BaseModel):
+    step: int = Field(ge=0)
+    type: str
+    amount: float = Field(ge=0)
+    oldbalanceOrg: float = Field(ge=0)
+    newbalanceOrig: float = Field(ge=0)
+    oldbalanceDest: float = Field(ge=0)
+    newbalanceDest: float = Field(ge=0)
+
+
+@app.post("/ml/predict")
+def ml_predict_transaction(tx: MLTransaction):
+    try:
+        result = predict_transaction(tx.model_dump())
+        return result
+    except FileNotFoundError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail=str(exc))
+
+@app.post("/ml/drift")
+def check_drift(request: DriftRequest):
+    try:
+        reference_df = pd.DataFrame(request.reference)
+        current_df = pd.DataFrame(request.current)
+
+        return detect_feature_drift(
+            reference=reference_df,
+            current=current_df,
+            features=request.features,
+            threshold=request.threshold,
+        )
+    except ValueError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail=str(exc))
